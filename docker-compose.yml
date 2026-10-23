@@ -1,0 +1,34 @@
+services:
+  api:
+    build:
+      context: ./backend
+    environment:
+      PORT: "8000"
+      TZ: Asia/Shanghai
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      URL: ${URL}
+      MODEL: ${MODEL:-gpt-4o-mini}
+      GAODE_API_KEY: ${GAODE_API_KEY}
+      # Python 调用同一网络内的 Node 服务获取飞猪数据
+      SKILL_SERVICE_URL: http://web:3000
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+    environment:
+      PORT: "3000"
+      HOST: 0.0.0.0
+      TZ: Asia/Shanghai
+      NODE_ENV: production
+      BACKEND_URL: http://api:8000
+      FLYAI_API_KEY: ${FLYAI_API_KEY}
+      # 直连对外暴露端口，不信任 X-Forwarded-For，避免伪造 IP 绕过限流
+      TRUST_PROXY: "0"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+    restart: unless-stopped

@@ -1,0 +1,117 @@
+# Render Blueprint：网页版 Trip Planner
+# 使用方法：把仓库推到 GitHub/GitLab，在 Render 控制台 New > Blueprint，选择本仓库即可。
+# Blueprint 字段说明：https://render.com/docs/blueprint-spec
+services:
+  # 公网入口：静态页面 + /api/飞猪检索 + /chat 反向代理
+  - type: web
+    name: trip-planner-web
+    runtime: docker
+    # 该服务会启动飞猪 CLI 子进程，512MB 偏紧，建议 1C2G
+    plan: 1c-2g
+    region: singapore
+    # 限流与缓存为进程内状态，扩实例前先接 Redis
+    numInstances: 1
+    dockerContext: ./frontend
+    dockerfilePath: ./frontend/Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      # Render 默认 PORT=10000，但 10000 不能用于内网通信，
+      # API 服务需要通过内网调用本服务，所以固定为 3000。
+      - key: PORT
+        value: "3000"
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Shanghai
+      # Render 前面有平台代理，只有这里设为 1 才按真实客户端 IP 限流
+      - key: TRUST_PROXY
+        value: "1"
+      # 单次请求总预算 20 秒；超过后快速返回繁忙提示
+      - key: CHAT_TIMEOUT_MS
+        value: "20000"
+      - key: MAX_INFLIGHT_CHAT
+        value: "250"
+      - key: MAX_QUEUE_CHAT
+        value: "250"
+      - key: MAX_INFLIGHT_PER_CLIENT
+        value: "4"
+      - key: CHAT_RATE_LIMIT_PER_MIN
+        value: "30"
+      # 飞猪 CLI 并发与排队，需按上游配额调整
+      - key: FLYAI_PRODUCT_CONCURRENCY
+        value: "2"
+      - key: FLYAI_HOTEL_CONCURRENCY
+        value: "2"
+      - key: FLYAI_TRANSPORT_CONCURRENCY
+        value: "1"
+      - key: FLYAI_QUEUE_SIZE
+        value: "100"
+      - key: FLYAI_QUEUE_TIMEOUT_MS
+        value: "3000"
+      # 单次飞猪 JSON 调用的总预算（含重试），与 Python 工具超时 12s 对齐
+      - key: FLYAI_JSON_TIMEOUT_MS
+        value: "6000"
+      # 由 Render 注入 api 服务的内网 host:port
+      - key: BACKEND_URL
+        fromService:
+          type: pserv
+          name: trip-planner-api
+          property: hostport
+      - key: FLYAI_API_KEY
+        sync: false
+
+  # 内网服务：Python LLM 编排 + 高德工具 + 飞猪工具
+  - type: pserv
+    name: trip-planner-api
+    runtime: docker
+    plan: 1c-2g
+    region: singapore
+    # 限流与缓存为进程内状态，扩实例前先接 Redis
+    numInstances: 1
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: TZ
+        value: Asia/Shanghai
+      - key: URL
+        value: https://api.deepseek.com
+      - key: MODEL
+        value: deepseek-flash
+      # 单次对话总预算略小于网关，确保先返回降级结果
+      - key: CHAT_BUDGET_SECONDS
+        value: "18"
+      - key: LLM_TIMEOUT_SECONDS
+        value: "8"
+      - key: LLM_MAX_RETRIES
+        value: "0"
+      - key: LLM_MAX_TOKENS
+        value: "800"
+      - key: MAX_CONCURRENT_LLM
+        value: "200"
+      - key: MAX_CONCURRENT_TOOLS
+        value: "40"
+      - key: RESPONSE_CACHE_TTL
+        value: "120"
+      # 每个 IP 的兜底限流，防止伪造 X-Client-Id 绕过客户端限流
+      - key: IP_RATE_LIMIT
+        value: "300"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GAODE_API_KEY
+        sync: false
+      # 高德 Web 服务 QPS 与并发上限；个人 Key 通常 3 QPS，企业 Key 可调高
+      - key: GAODE_QPS
+        value: "3"
+      - key: GAODE_MAX_INFLIGHT
+        value: "3"
+      # 高德批量请求共用的线程池大小
+      - key: AMAP_POOL_SIZE
+        value: "8"
+      # 由 Render 注入 web 服务的内网 host:port
+      - key: SKILL_SERVICE_URL
+        fromService:
+          type: web
+          name: trip-planner-web
+          property: hostport

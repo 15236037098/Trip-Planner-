@@ -1,0 +1,18 @@
+# Web 服务
+fastapi==0.141.1
+uvicorn==0.23.2
+
+# 配置与环境变量
+python-dotenv==1.0.1
+
+# HTTP 请求（高德地图 API）
+requests==2.34.2
+
+# 数据模型校验
+pydantic==2.13.4
+
+# LLM / LangChain
+openai==1.109.1
+langchain==0.2.9
+langchain-core==0.2.21
+langchain-openai==0.1.17

@@ -1,0 +1,1846 @@
+<!--
+ * @Author: libai 136444284@qq.com
+ * @Date: 2026-10-16 11:21:59
+ * @LastEditors: libai 136444284@qq.com
+ * @LastEditTime: 2026-10-16 11:22:06
+ * @FilePath: \helloagents-trip-planner\frontend\public\index.html
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Trip Planner - 智能助手</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { height: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .chat-container {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 16px 20px;
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .chat-header .app-title {
+      flex: 1;
+      text-align: center;
+    }
+
+    .chat-header select {
+      max-width: 104px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.45);
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .chat-header select option { color: #333; }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 10px 16px;
+      border-radius: 18px;
+      line-height: 1.6;
+      font-size: 14px;
+      animation: fadeIn 0.3s ease;
+      word-break: break-word;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: #667eea;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: #f1f3f5;
+      color: #333;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message .tool-tag {
+      display: inline-block;
+      font-size: 11px;
+      background: rgba(255,255,255,0.25);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+
+    .message.assistant .tool-tag {
+      background: #e9ecef;
+      color: #764ba2;
+    }
+
+    .chat-input-area {
+      display: flex;
+      padding: 12px 16px;
+      border-top: 1px solid #eee;
+      gap: 10px;
+    }
+
+    .chat-input-area input {
+      flex: 1;
+      padding: 10px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 24px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input-area input:focus {
+      border-color: #667eea;
+    }
+
+    .chat-input-area button {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .chat-input-area button:hover { opacity: 0.9; }
+    .chat-input-area button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 10px 16px;
+    }
+
+    .typing-indicator span {
+      width: 8px; height: 8px;
+      background: #adb5bd;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-8px); }
+    }
+
+    .route-message {
+      width: 100%;
+      max-width: 100%;
+      padding: 0;
+      background: transparent;
+    }
+
+    .route-card {
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .route-map {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 3 / 2;
+      object-fit: cover;
+      background: #f1f3f5;
+    }
+
+    .route-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 12px 6px;
+    }
+
+    .route-stat {
+      font-size: 12px;
+      color: #495057;
+      background: #f1f3f5;
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+
+    .route-stop-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 12px 14px;
+    }
+
+    .route-stop {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .route-index {
+      flex: 0 0 18px;
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      font-size: 11px;
+      line-height: 18px;
+      text-align: center;
+    }
+
+    .route-stop-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .route-stop-name {
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .route-leg {
+      font-size: 11px;
+      color: #868e96;
+    }
+
+    .recommendation-message {
+      width: 100%;
+      max-width: 100%;
+      padding: 0;
+      background: transparent;
+    }
+
+    .attraction-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .attraction-card {
+      display: flex;
+      gap: 10px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 14px;
+    }
+
+    .attraction-photo {
+      flex: 0 0 84px;
+      width: 84px;
+      height: 84px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: #f1f3f5;
+    }
+
+    .attraction-photo-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 600;
+      color: #adb5bd;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .attraction-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .attraction-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .attraction-meta {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #868e96;
+      word-break: break-word;
+    }
+
+    .food-title {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .food-suitable {
+      font-size: 11px;
+      color: #764ba2;
+      background: #f0edff;
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .stay-title {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .stay-tag {
+      font-size: 11px;
+      color: #0b7285;
+      background: #e3fafc;
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .stay-price {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e8590c;
+    }
+
+    .stay-room {
+      font-size: 11px;
+      color: #868e96;
+    }
+
+    .stay-phone {
+      font-size: 12px;
+      color: #1971c2;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .stay-address {
+      font-size: 12px;
+      color: #868e96;
+      word-break: break-word;
+    }
+
+    .attraction-card.clickable {
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .attraction-card.clickable:hover,
+    .attraction-card.clickable:focus-visible {
+      border-color: #667eea;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.18);
+      outline: none;
+    }
+
+    .attraction-hint {
+      font-size: 11px;
+      color: #667eea;
+    }
+
+    .product-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e8590c;
+      white-space: nowrap;
+    }
+
+    .product-tags {
+      font-size: 11px;
+      color: #764ba2;
+      word-break: break-word;
+    }
+
+    .product-link {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1971c2;
+      text-decoration: none;
+    }
+
+    .product-link:hover { text-decoration: underline; }
+
+    .transport-summary {
+      padding: 4px 4px 8px;
+      font-size: 12px;
+      color: #495057;
+    }
+
+    .transport-mode {
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f3dc4;
+      background: #f3f0ff;
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .transport-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e8590c;
+      white-space: nowrap;
+    }
+
+    .transport-badge {
+      font-size: 11px;
+      color: #2b8a3e;
+      background: #ebfbee;
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    @media (min-width: 700px) {
+      body { padding: 24px; }
+
+      .chat-container {
+        width: min(1080px, 100%);
+        height: min(880px, calc(100dvh - 48px));
+        border-radius: 18px;
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+      }
+
+      .chat-header {
+        padding: 18px 26px;
+        font-size: 19px;
+      }
+
+      .chat-header .app-title { text-align: left; }
+      .chat-header select { max-width: 130px; }
+
+      .chat-messages {
+        padding: 24px;
+        gap: 14px;
+      }
+
+      .message {
+        max-width: min(78%, 680px);
+        font-size: 15px;
+      }
+
+      .route-message,
+      .recommendation-message { max-width: 100%; }
+
+      .chat-input-area {
+        padding: 16px 24px;
+        gap: 12px;
+      }
+
+      .chat-input-area input {
+        font-size: 15px;
+        padding: 12px 18px;
+      }
+
+      .chat-input-area button {
+        font-size: 15px;
+        padding: 12px 28px;
+      }
+
+      .attraction-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 10px;
+      }
+
+      .attraction-card { height: 100%; }
+
+      .attraction-photo {
+        flex-basis: 96px;
+        width: 96px;
+        height: 96px;
+      }
+
+      .route-card {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .chat-header {
+        padding-top: calc(16px + env(safe-area-inset-top));
+      }
+
+      .message {
+        max-width: 88%;
+      }
+
+      .chat-input-area {
+        padding: 10px 12px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+
+      /* 16px 可避免 iOS Safari 聚焦输入框时自动放大页面 */
+      .chat-input-area input {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <span class="app-title" id="appTitle">🤖 Trip Planner 智能助手</span>
+      <select id="langSelect" aria-label="Language">
+        <option value="zh-CN">中文</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+      </select>
+    </div>
+
+    <div class="chat-messages" id="messages">
+      <div class="message assistant" id="welcomeMessage">
+        你好！我是 Trip Planner 助手。<br>
+        可以问我天气，或告诉我你想去的景点，我来规划游玩路线 🌤️
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="输入消息，如：我想去外滩、豫园、东方明珠"
+        autocomplete="off"
+      />
+      <button id="sendBtn" onclick="sendMessage()">发送</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "/chat";
+    const PRODUCT_API = "/api/products";
+    const HOTEL_API = "/api/hotels";
+    const CLIENT_ID = (() => {
+      const storageKey = "tripClientId";
+      try {
+        let value = localStorage.getItem(storageKey);
+        if (!value) {
+          value =
+            (window.crypto && crypto.randomUUID && crypto.randomUUID()) ||
+            `c-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          localStorage.setItem(storageKey, value);
+        }
+        return value;
+      } catch {
+        return `c-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+    })();
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const conversation = [];
+    const seenStays = [];
+    const loadingCards = new Set();
+    // 最近一次酒店查询使用的入住/退房日期，卡片再次查询时沿用
+    let currentStayDates = null;
+
+    // 界面文案与助手回复共用同一套语言代码
+    const I18N = {
+      "zh-CN": {
+        pageTitle: "Trip Planner - 智能助手",
+        appTitle: "🤖 Trip Planner 智能助手",
+        welcome: "你好！我是 Trip Planner 助手。<br>可以问我天气，或告诉我你想去的景点，我来规划游玩路线 🌤️",
+        placeholder: "输入消息，如：我想去外滩、豫园、东方明珠",
+        send: "发送",
+        tools: {
+          fetch_weather: "天气查询",
+          plan_trip_route: "路线规划",
+          recommend_attractions: "景点推荐",
+          recommend_food: "美食推荐",
+          recommend_stay: "住宿推荐",
+          recommend_hotel_deals: "酒店房价",
+          recommend_products: "项目与价格",
+          plan_transport: "出行比价",
+        },
+        mapAlt: "游玩路线地图",
+        routeTotal: (d) => `全程 ${d}`,
+        routeDriving: (d) => `驾车 ${d}`,
+        routeMode: { distance: "最短距离", time: "最省时间" },
+        leg: (d, t) => `↓ 驾车 ${d} · ${t}`,
+        distance: (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} 公里` : `${m} 米`),
+        duration: (s) => {
+          const minutes = Math.round(s / 60);
+          return minutes < 60 ? `${minutes} 分钟` : `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟`;
+        },
+        rating: (r) => `评分 ${r}`,
+        noRating: "评分暂无",
+        viewTickets: "点击查看门票与项目 →",
+        priceNote: "价格以下单页为准",
+        viewDetail: "查看详情 / 预订 →",
+        viewRoom: "查看房型 / 预订 →",
+        viewRoomDates: (d) => `查看房型 / 预订（${d}）→`,
+        stayViewPrice: "查看实时房价",
+        stayHint: "点击查看实时房价 →",
+        room: (types, status) => `房型：${types || "单人间/双人间（可询）"} · ${status || "房态请电话确认"}`,
+        phone: (tel) => `电话 ${tel}`,
+        phoneConsult: "电话需现场或平台咨询",
+        stayDates: (a, b) => `入住 ${a} · 退房 ${b}`,
+        fromTo: (a, b) => `从${a}到${b}`,
+        people: (n) => `${n}人`,
+        depart: (date) => `${date} 出发`,
+        distanceKm: (km) => `约 ${km} 公里`,
+        cheapest: "最省",
+        fastest: "最快",
+        totalCost: (p) => `总花费 ${p}`,
+        durationApprox: (d) => `耗时约 ${d}`,
+        viewTicket: "查看票价 / 预订 →",
+        notesJoin: "；",
+        viewTicketsQuery: (poi) => `查看「${poi}」的门票和项目`,
+        productsFound: (poi, n) => `为你找到「${poi}」的 ${n} 个可预订项目，价格来自飞猪实时数据，以下单页为准。`,
+        noProducts: (poi) => `暂时没有找到「${poi}」的可预订项目，可以换个景点试试～`,
+        productsError: "项目查询失败，请确认技能服务已启动（端口 3000）",
+        viewRoomQuery: (hotel) => `查看「${hotel}」的实时房价`,
+        hotelFound: (hotel, n) => `为你找到「${hotel}」的 ${n} 个房价方案，来自飞猪实时数据，以下单页为准。`,
+        hotelFallback: (hotel, n) => `飞猪暂未收录「${hotel}」，为你找到 ${n} 个同城同类住宿价格，以下单页为准。`,
+        noHotelDeals: (hotel) => `暂时没有找到「${hotel}」的房价，可以换个酒店试试～`,
+        hotelsError: "房价查询失败，请确认技能服务已启动（端口 3000）",
+        timeout: "请求超时，请稍后重试",
+        assistantUnavailable: "助手暂时不可用，请稍后重试",
+        backendDown: "连接后端失败，请确认后端已启动",
+      },
+      en: {
+        pageTitle: "Trip Planner - Assistant",
+        appTitle: "🤖 Trip Planner Assistant",
+        welcome: "Hi! I'm your Trip Planner assistant.<br>Ask me about the weather, or tell me the places you want to visit and I'll plan the route 🌤️",
+        placeholder: "Type a message, e.g. I want to visit the Bund, Yu Garden and Oriental Pearl Tower",
+        send: "Send",
+        tools: {
+          fetch_weather: "Weather",
+          plan_trip_route: "Route planning",
+          recommend_attractions: "Attractions",
+          recommend_food: "Food",
+          recommend_stay: "Stay",
+          recommend_hotel_deals: "Hotel rates",
+          recommend_products: "Tickets & activities",
+          plan_transport: "Transport compare",
+        },
+        mapAlt: "Route map",
+        routeTotal: (d) => `Total ${d}`,
+        routeDriving: (d) => `Drive ${d}`,
+        routeMode: { distance: "Shortest distance", time: "Fastest" },
+        leg: (d, t) => `↓ Drive ${d} · ${t}`,
+        distance: (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`),
+        duration: (s) => {
+          const minutes = Math.round(s / 60);
+          return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+        },
+        rating: (r) => `Rating ${r}`,
+        noRating: "No rating",
+        viewTickets: "Tap to see tickets & activities →",
+        priceNote: "Price subject to the booking page",
+        viewDetail: "Details / Book →",
+        viewRoom: "Rooms / Book →",
+        viewRoomDates: (d) => `Rooms / Book (${d}) →`,
+        stayViewPrice: "View live rates",
+        stayHint: "Tap to see live rates →",
+        room: (types, status) => `Rooms: ${types || "Single/Double (on request)"} · ${status || "Availability: call to confirm"}`,
+        phone: (tel) => `Tel ${tel}`,
+        phoneConsult: "Ask at the front desk or on the booking platform",
+        stayDates: (a, b) => `Check-in ${a} · Check-out ${b}`,
+        fromTo: (a, b) => `${a} → ${b}`,
+        people: (n) => `${n} people`,
+        depart: (date) => `Depart ${date}`,
+        distanceKm: (km) => `~${km} km`,
+        cheapest: "Cheapest",
+        fastest: "Fastest",
+        totalCost: (p) => `Total ${p}`,
+        durationApprox: (d) => `~${d}`,
+        viewTicket: "Tickets / Book →",
+        notesJoin: "; ",
+        viewTicketsQuery: (poi) => `Show tickets and activities for "${poi}"`,
+        productsFound: (poi, n) => `${n} bookable experiences found for "${poi}". Prices come from Fliggy in real time; the booking page is final.`,
+        noProducts: (poi) => `No bookable experiences found for "${poi}" right now. Try another attraction.`,
+        productsError: "Failed to load experiences. Please make sure the skill service is running (port 3000).",
+        viewRoomQuery: (hotel) => `Show live room rates for "${hotel}"`,
+        hotelFound: (hotel, n) => `${n} room rate options found for "${hotel}" from Fliggy in real time; the booking page is final.`,
+        hotelFallback: (hotel, n) => `"${hotel}" is not yet listed on Fliggy. Here are ${n} similar stays in the same city; the booking page is final.`,
+        noHotelDeals: (hotel) => `No room rates found for "${hotel}" right now. Try another hotel.`,
+        hotelsError: "Failed to load room rates. Please make sure the skill service is running (port 3000).",
+        timeout: "The request timed out. Please try again.",
+        assistantUnavailable: "The assistant is temporarily unavailable. Please try again later.",
+        backendDown: "Cannot reach the backend. Please make sure it is running.",
+      },
+      ja: {
+        pageTitle: "Trip Planner - アシスタント",
+        appTitle: "🤖 Trip Planner アシスタント",
+        welcome: "こんにちは！Trip Planner アシスタントです。<br>天気の質問や、行きたい観光地を教えていただければルートを計画します 🌤️",
+        placeholder: "メッセージを入力（例：外灘、豫園、東方明珠に行きたい）",
+        send: "送信",
+        tools: {
+          fetch_weather: "天気",
+          plan_trip_route: "ルート計画",
+          recommend_attractions: "観光地",
+          recommend_food: "グルメ",
+          recommend_stay: "宿泊",
+          recommend_hotel_deals: "ホテル料金",
+          recommend_products: "チケット・体験",
+          plan_transport: "交通比較",
+        },
+        mapAlt: "観光ルートマップ",
+        routeTotal: (d) => `全体 ${d}`,
+        routeDriving: (d) => `車で ${d}`,
+        routeMode: { distance: "最短距離", time: "最短時間" },
+        leg: (d, t) => `↓ 車で ${d} · ${t}`,
+        distance: (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`),
+        duration: (s) => {
+          const minutes = Math.round(s / 60);
+          return minutes < 60 ? `${minutes} 分` : `${Math.floor(minutes / 60)} 時間 ${minutes % 60} 分`;
+        },
+        rating: (r) => `評価 ${r}`,
+        noRating: "評価なし",
+        viewTickets: "タップしてチケット・体験を見る →",
+        priceNote: "料金は予約ページをご確認ください",
+        viewDetail: "詳細 / 予約 →",
+        viewRoom: "客室タイプ / 予約 →",
+        viewRoomDates: (d) => `客室タイプ / 予約（${d}）→`,
+        stayViewPrice: "最新の宿泊料金を見る",
+        stayHint: "タップして最新の宿泊料金を見る →",
+        room: (types, status) => `客室：${types || "シングル/ツイン（要問い合わせ）"} · ${status || "空室状況は電話でご確認ください"}`,
+        phone: (tel) => `電話 ${tel}`,
+        phoneConsult: "電話または予約サイトでお問い合わせください",
+        stayDates: (a, b) => `チェックイン ${a} · チェックアウト ${b}`,
+        fromTo: (a, b) => `${a}から${b}へ`,
+        people: (n) => `${n}人`,
+        depart: (date) => `${date} 出発`,
+        distanceKm: (km) => `約 ${km} km`,
+        cheapest: "最安",
+        fastest: "最速",
+        totalCost: (p) => `合計 ${p}`,
+        durationApprox: (d) => `所要約 ${d}`,
+        viewTicket: "料金 / 予約 →",
+        notesJoin: "；",
+        viewTicketsQuery: (poi) => `「${poi}」のチケットと体験を見る`,
+        productsFound: (poi, n) => `「${poi}」で予約可能な体験が ${n} 件見つかりました。料金は飛猪のリアルタイム情報で、予約ページが優先です。`,
+        noProducts: (poi) => `「${poi}」の予約可能な体験は現在見つかりませんでした。別の観光地をお試しください。`,
+        productsError: "体験の取得に失敗しました。スキルサービス（ポート 3000）が起動しているかご確認ください。",
+        viewRoomQuery: (hotel) => `「${hotel}」の最新宿泊料金を見る`,
+        hotelFound: (hotel, n) => `「${hotel}」の宿泊料金プランが ${n} 件見つかりました。飛猪のリアルタイム情報で、予約ページが優先です。`,
+        hotelFallback: (hotel, n) => `「${hotel}」は飛猪に未登録のため、同市内の類似宿泊施設 ${n} 件の料金を表示します。予約ページが優先です。`,
+        noHotelDeals: (hotel) => `「${hotel}」の宿泊料金は現在見つかりませんでした。別のホテルをお試しください。`,
+        hotelsError: "宿泊料金の取得に失敗しました。スキルサービス（ポート 3000）が起動しているかご確認ください。",
+        timeout: "リクエストがタイムアウトしました。しばらくしてから再試行してください。",
+        assistantUnavailable: "アシスタントは一時的に利用できません。しばらくしてから再試行してください。",
+        backendDown: "バックエンドに接続できません。起動しているかご確認ください。",
+      },
+      ko: {
+        pageTitle: "Trip Planner - 도우미",
+        appTitle: "🤖 Trip Planner 도우미",
+        welcome: "안녕하세요! Trip Planner 도우미입니다.<br>날씨를 물어보시거나 가고 싶은 관광지를 알려주시면 여행 경로를 계획해 드려요 🌤️",
+        placeholder: "메시지를 입력하세요. 예: 와이탄, 위위안, 동방명주에 가고 싶어요",
+        send: "보내기",
+        tools: {
+          fetch_weather: "날씨",
+          plan_trip_route: "경로 계획",
+          recommend_attractions: "관광지",
+          recommend_food: "맛집",
+          recommend_stay: "숙소",
+          recommend_hotel_deals: "호텔 요금",
+          recommend_products: "티켓·체험",
+          plan_transport: "교통 비교",
+        },
+        mapAlt: "관광 경로 지도",
+        routeTotal: (d) => `총 ${d}`,
+        routeDriving: (d) => `차량 ${d}`,
+        routeMode: { distance: "최단 거리", time: "최소 시간" },
+        leg: (d, t) => `↓ 차량 ${d} · ${t}`,
+        distance: (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`),
+        duration: (s) => {
+          const minutes = Math.round(s / 60);
+          return minutes < 60 ? `${minutes}분` : `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
+        },
+        rating: (r) => `평점 ${r}`,
+        noRating: "평점 없음",
+        viewTickets: "탭하여 티켓·체험 보기 →",
+        priceNote: "요금은 예약 페이지 기준입니다",
+        viewDetail: "상세 / 예약 →",
+        viewRoom: "객실 유형 / 예약 →",
+        viewRoomDates: (d) => `객실 유형 / 예약 (${d}) →`,
+        stayViewPrice: "실시간 객실 요금 보기",
+        stayHint: "탭하여 실시간 객실 요금 보기 →",
+        room: (types, status) => `객실: ${types || "1인실/2인실(문의)"} · ${status || "객실 상황은 전화로 확인하세요"}`,
+        phone: (tel) => `전화 ${tel}`,
+        phoneConsult: "전화 또는 예약 플랫폼에서 문의하세요",
+        stayDates: (a, b) => `체크인 ${a} · 체크아웃 ${b}`,
+        fromTo: (a, b) => `${a} → ${b}`,
+        people: (n) => `${n}명`,
+        depart: (date) => `${date} 출발`,
+        distanceKm: (km) => `약 ${km} km`,
+        cheapest: "최저가",
+        fastest: "최단",
+        totalCost: (p) => `총비용 ${p}`,
+        durationApprox: (d) => `소요 약 ${d}`,
+        viewTicket: "요금 / 예약 →",
+        notesJoin: "；",
+        viewTicketsQuery: (poi) => `"${poi}" 티켓과 체험 보기`,
+        productsFound: (poi, n) => `"${poi}"에서 예약 가능한 체험 ${n}개를 찾았습니다. 요금은 플릭기의 실시간 정보이며 예약 페이지가 우선입니다.`,
+        noProducts: (poi) => `"${poi}"의 예약 가능한 체험을 찾지 못했습니다. 다른 관광지를 시도해 보세요.`,
+        productsError: "체험을 불러오지 못했습니다. 스킬 서비스(포트 3000)가 실행 중인지 확인하세요.",
+        viewRoomQuery: (hotel) => `"${hotel}"의 실시간 객실 요금 보기`,
+        hotelFound: (hotel, n) => `"${hotel}"의 객실 요금 ${n}개를 찾았습니다. 플릭기 실시간 정보이며 예약 페이지가 우선입니다.`,
+        hotelFallback: (hotel, n) => `"${hotel}"은(는) 플릭기에 아직 등록되지 않아 같은 도시의 유사 숙소 ${n}곳 요금을 보여 드립니다. 예약 페이지가 우선입니다.`,
+        noHotelDeals: (hotel) => `"${hotel}"의 객실 요금을 찾지 못했습니다. 다른 호텔을 시도해 보세요.`,
+        hotelsError: "객실 요금을 불러오지 못했습니다. 스킬 서비스(포트 3000)가 실행 중인지 확인하세요.",
+        timeout: "요청 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.",
+        assistantUnavailable: "도우미를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하세요.",
+        backendDown: "백엔드에 연결할 수 없습니다. 실행 중인지 확인하세요.",
+      },
+      es: {
+        pageTitle: "Trip Planner - Asistente",
+        appTitle: "🤖 Asistente Trip Planner",
+        welcome: "¡Hola! Soy tu asistente Trip Planner.<br>Pregúntame por el tiempo o dime qué lugares quieres visitar y planificaré la ruta 🌤️",
+        placeholder: "Escribe un mensaje, p. ej.: quiero visitar el Bund, el Jardín Yu y la Torre de la Perla Oriental",
+        send: "Enviar",
+        tools: {
+          fetch_weather: "Tiempo",
+          plan_trip_route: "Ruta",
+          recommend_attractions: "Lugares",
+          recommend_food: "Comida",
+          recommend_stay: "Alojamiento",
+          recommend_hotel_deals: "Precios de hotel",
+          recommend_products: "Entradas y actividades",
+          plan_transport: "Comparar transporte",
+        },
+        mapAlt: "Mapa de la ruta",
+        routeTotal: (d) => `Total ${d}`,
+        routeDriving: (d) => `En coche ${d}`,
+        routeMode: { distance: "Distancia más corta", time: "Más rápido" },
+        leg: (d, t) => `↓ En coche ${d} · ${t}`,
+        distance: (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`),
+        duration: (s) => {
+          const minutes = Math.round(s / 60);
+          return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+        },
+        rating: (r) => `Valoración ${r}`,
+        noRating: "Sin valoración",
+        viewTickets: "Toca para ver entradas y actividades →",
+        priceNote: "Precio según la página de reserva",
+        viewDetail: "Detalles / Reservar →",
+        viewRoom: "Habitaciones / Reservar →",
+        viewRoomDates: (d) => `Habitaciones / Reservar (${d}) →`,
+        stayViewPrice: "Ver tarifas en directo",
+        stayHint: "Toca para ver tarifas en directo →",
+        room: (types, status) => `Habitaciones: ${types || "Individual/Doble (consultar)"} · ${status || "Disponibilidad: confirmar por teléfono"}`,
+        phone: (tel) => `Tel. ${tel}`,
+        phoneConsult: "Consulta en recepción o en la plataforma de reservas",
+        stayDates: (a, b) => `Entrada ${a} · Salida ${b}`,
+        fromTo: (a, b) => `${a} → ${b}`,
+        people: (n) => `${n} personas`,
+        depart: (date) => `Salida ${date}`,
+        distanceKm: (km) => `~${km} km`,
+        cheapest: "Más barato",
+        fastest: "Más rápido",
+        totalCost: (p) => `Total ${p}`,
+        durationApprox: (d) => `Duración ~${d}`,
+        viewTicket: "Precios / Reservar →",
+        notesJoin: "; ",
+        viewTicketsQuery: (poi) => `Ver entradas y actividades de "${poi}"`,
+        productsFound: (poi, n) => `Encontramos ${n} experiencias reservables en "${poi}". Precios en tiempo real de Fliggy; la página de reserva es la definitiva.`,
+        noProducts: (poi) => `No encontramos experiencias reservables en "${poi}". Prueba con otro lugar.`,
+        productsError: "No se pudieron cargar las experiencias. Comprueba que el servicio de skills esté activo (puerto 3000).",
+        viewRoomQuery: (hotel) => `Ver tarifas en directo de "${hotel}"`,
+        hotelFound: (hotel, n) => `Encontramos ${n} tarifas para "${hotel}" en tiempo real de Fliggy; la página de reserva es la definitiva.`,
+        hotelFallback: (hotel, n) => `"${hotel}" aún no aparece en Fliggy. Mostramos ${n} alojamientos similares de la misma ciudad; la página de reserva es la definitiva.`,
+        noHotelDeals: (hotel) => `No encontramos tarifas para "${hotel}". Prueba con otro hotel.`,
+        hotelsError: "No se pudieron cargar las tarifas. Comprueba que el servicio de skills esté activo (puerto 3000).",
+        timeout: "La solicitud ha caducado. Inténtalo de nuevo.",
+        assistantUnavailable: "El asistente no está disponible temporalmente. Inténtalo de nuevo más tarde.",
+        backendDown: "No se puede conectar con el backend. Comprueba que esté en marcha.",
+      },
+      fr: {
+        pageTitle: "Trip Planner - Assistant",
+        appTitle: "🤖 Assistant Trip Planner",
+        welcome: "Bonjour ! Je suis votre assistant Trip Planner.<br>Posez-moi une question sur la météo ou dites-moi quels sites vous voulez voir, je planifierai l'itinéraire 🌤️",
+        placeholder: "Saisissez un message, ex. : je veux voir le Bund, le jardin Yu et la tour de la Perle orientale",
+        send: "Envoyer",
+        tools: {
+          fetch_weather: "Météo",
+          plan_trip_route: "Itinéraire",
+          recommend_attractions: "Sites",
+          recommend_food: "Gastronomie",
+          recommend_stay: "Hébergement",
+          recommend_hotel_deals: "Tarifs d'hôtel",
+          recommend_products: "Billets et activités",
+          plan_transport: "Comparer les transports",
+        },
+        mapAlt: "Carte de l'itinéraire",
+        routeTotal: (d) => `Total ${d}`,
+        routeDriving: (d) => `En voiture ${d}`,
+        routeMode: { distance: "Distance la plus courte", time: "Le plus rapide" },
+        leg: (d, t) => `↓ En voiture ${d} · ${t}`,
+        distance: (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`),
+        duration: (s) => {
+          const minutes = Math.round(s / 60);
+          return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+        },
+        rating: (r) => `Note ${r}`,
+        noRating: "Pas de note",
+        viewTickets: "Touchez pour voir billets et activités →",
+        priceNote: "Prix selon la page de réservation",
+        viewDetail: "Détails / Réserver →",
+        viewRoom: "Chambres / Réserver →",
+        viewRoomDates: (d) => `Chambres / Réserver (${d}) →`,
+        stayViewPrice: "Voir les tarifs en direct",
+        stayHint: "Touchez pour voir les tarifs en direct →",
+        room: (types, status) => `Chambres : ${types || "Simple/Double (sur demande)"} · ${status || "Disponibilité : confirmer par téléphone"}`,
+        phone: (tel) => `Tél. ${tel}`,
+        phoneConsult: "Renseignez-vous à la réception ou sur la plateforme de réservation",
+        stayDates: (a, b) => `Arrivée ${a} · Départ ${b}`,
+        fromTo: (a, b) => `${a} → ${b}`,
+        people: (n) => `${n} personnes`,
+        depart: (date) => `Départ ${date}`,
+        distanceKm: (km) => `~${km} km`,
+        cheapest: "Le moins cher",
+        fastest: "Le plus rapide",
+        totalCost: (p) => `Total ${p}`,
+        durationApprox: (d) => `Durée ~${d}`,
+        viewTicket: "Tarifs / Réserver →",
+        notesJoin: " ; ",
+        viewTicketsQuery: (poi) => `Voir les billets et activités de « ${poi} »`,
+        productsFound: (poi, n) => `${n} expériences réservables trouvées pour « ${poi} ». Prix en temps réel de Fliggy ; la page de réservation fait foi.`,
+        noProducts: (poi) => `Aucune expérience réservable trouvée pour « ${poi} ». Essayez un autre site.`,
+        productsError: "Impossible de charger les expériences. Vérifiez que le service de skills est démarré (port 3000).",
+        viewRoomQuery: (hotel) => `Voir les tarifs en direct de « ${hotel} »`,
+        hotelFound: (hotel, n) => `${n} tarifs trouvés pour « ${hotel} » en temps réel sur Fliggy ; la page de réservation fait foi.`,
+        hotelFallback: (hotel, n) => `« ${hotel} » n'est pas encore référencé sur Fliggy. Voici ${n} hébergements similaires dans la même ville ; la page de réservation fait foi.`,
+        noHotelDeals: (hotel) => `Aucun tarif trouvé pour « ${hotel} ». Essayez un autre hôtel.`,
+        hotelsError: "Impossible de charger les tarifs. Vérifiez que le service de skills est démarré (port 3000).",
+        timeout: "La requête a expiré. Veuillez réessayer.",
+        assistantUnavailable: "L'assistant est temporairement indisponible. Réessayez plus tard.",
+        backendDown: "Impossible de joindre le backend. Vérifiez qu'il est démarré.",
+      },
+    };
+
+    const langSelect = document.getElementById("langSelect");
+    const appTitle = document.getElementById("appTitle");
+    const welcomeMessage = document.getElementById("welcomeMessage");
+
+    function detectLanguage() {
+      const saved = localStorage.getItem("tripLanguage");
+      if (saved && I18N[saved]) return saved;
+      const browserLang = (navigator.language || "en").toLowerCase();
+      if (browserLang.startsWith("zh")) return "zh-CN";
+      const base = browserLang.split("-")[0];
+      // 面向来华游客，浏览器语言不在支持列表时默认英文
+      return I18N[base] ? base : "en";
+    }
+
+    let currentLang = detectLanguage();
+
+    function t(key, ...args) {
+      const value = I18N[currentLang][key];
+      return typeof value === "function" ? value(...args) : value ?? key;
+    }
+
+    function applyLanguage(lang) {
+      currentLang = I18N[lang] ? lang : "en";
+      localStorage.setItem("tripLanguage", currentLang);
+      document.documentElement.lang = currentLang;
+      document.title = t("pageTitle");
+      appTitle.textContent = t("appTitle");
+      langSelect.value = currentLang;
+      inputEl.placeholder = t("placeholder");
+      sendBtn.textContent = t("send");
+      if (!conversation.length) {
+        welcomeMessage.innerHTML = t("welcome");
+      }
+    }
+
+    langSelect.addEventListener("change", () => applyLanguage(langSelect.value));
+    applyLanguage(currentLang);
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function formatText(text) {
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br>");
+    }
+
+    function apiErrorMessage(data, fallback) {
+      const detail = data && (data.detail || data.error);
+      if (typeof detail === "string" && detail.trim()) return detail;
+      if (Array.isArray(detail)) {
+        const parts = detail
+          .map((item) => (item && (item.msg || item.message)) || "")
+          .filter(Boolean);
+        if (parts.length) return parts.join("；");
+      }
+      if (detail && typeof detail === "object" && typeof detail.message === "string") {
+        return detail.message;
+      }
+      return fallback;
+    }
+
+    function addMessage(text, role, toolUsed) {
+      const div = document.createElement("div");
+      div.className = `message ${role}`;
+
+      let prefix = "";
+      if (role === "assistant" && toolUsed) {
+        // 只渲染白名单里的工具名，服务端返回的任意字符串不直接进 HTML
+        const tools = t("tools") || {};
+        if (Object.prototype.hasOwnProperty.call(tools, toolUsed)) {
+          prefix = `<span class="tool-tag">🔧 ${formatText(tools[toolUsed])}</span><br>`;
+        }
+      }
+      div.innerHTML = prefix + formatText(text);
+
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+      const div = document.createElement("div");
+      div.className = "message assistant typing-indicator";
+      div.id = "typing";
+      div.innerHTML = "<span></span><span></span><span></span>";
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function hideTyping() {
+      const el = document.getElementById("typing");
+      if (el) el.remove();
+    }
+
+    let pendingRequests = 0;
+
+    function beginPending() {
+      pendingRequests += 1;
+      sendBtn.disabled = true;
+      if (pendingRequests === 1) showTyping();
+    }
+
+    function endPending() {
+      pendingRequests = Math.max(0, pendingRequests - 1);
+      if (pendingRequests === 0) {
+        hideTyping();
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    function formatDistance(meters) {
+      return t("distance", meters);
+    }
+
+    function formatDuration(seconds) {
+      return t("duration", seconds);
+    }
+
+    function addRouteCard(route) {
+      if (!route || !Array.isArray(route.stops) || !route.stops.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant route-message";
+
+      const card = document.createElement("div");
+      card.className = "route-card";
+
+      if (route.map_url && route.map_url.startsWith("/api/map?")) {
+        const img = document.createElement("img");
+        img.className = "route-map";
+        img.src = route.map_url;
+        img.alt = t("mapAlt");
+        img.loading = "lazy";
+        img.addEventListener("error", () => img.remove());
+        card.appendChild(img);
+      }
+
+      const stats = document.createElement("div");
+      stats.className = "route-stats";
+      [
+        t("routeTotal", formatDistance(route.total_distance_m || 0)),
+        t("routeDriving", formatDuration(route.total_duration_s || 0)),
+        t("routeMode")[route.mode] || route.mode_label,
+      ]
+        .filter(Boolean)
+        .forEach((text) => {
+          const span = document.createElement("span");
+          span.className = "route-stat";
+          span.textContent = text;
+          stats.appendChild(span);
+        });
+      card.appendChild(stats);
+
+      const list = document.createElement("ol");
+      list.className = "route-stop-list";
+      route.stops.forEach((stop, index) => {
+        const item = document.createElement("li");
+        item.className = "route-stop";
+
+        const indexEl = document.createElement("span");
+        indexEl.className = "route-index";
+        indexEl.textContent = index + 1;
+
+        const main = document.createElement("div");
+        main.className = "route-stop-main";
+
+        const name = document.createElement("span");
+        name.className = "route-stop-name";
+        name.textContent = stop.name;
+        main.appendChild(name);
+
+        const leg = route.legs && route.legs[index];
+        if (leg) {
+          const legEl = document.createElement("span");
+          legEl.className = "route-leg";
+          legEl.textContent = t("leg", formatDistance(leg.distance_m), formatDuration(leg.duration_s));
+          main.appendChild(legEl);
+        }
+
+        item.append(indexEl, main);
+        list.appendChild(item);
+      });
+      card.appendChild(list);
+
+      wrap.appendChild(card);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function createPhoto(item) {
+      const src = item.photo || item.image;
+      if (src && /^https?:\/\//.test(src)) {
+        const img = document.createElement("img");
+        img.className = "attraction-photo";
+        img.src = src;
+        img.alt = item.name || "";
+        img.loading = "lazy";
+        img.referrerPolicy = "no-referrer";
+        img.addEventListener("error", () => img.replaceWith(createPhotoFallback(item)));
+        return img;
+      }
+      return createPhotoFallback(item);
+    }
+
+    function createPhotoFallback(item) {
+      const box = document.createElement("div");
+      box.className = "attraction-photo attraction-photo-empty";
+      box.textContent = (item.name || "?").slice(0, 1);
+      return box;
+    }
+
+    function addRecommendationCards(recommendation) {
+      if (!recommendation || !Array.isArray(recommendation.attractions)) return;
+      if (!recommendation.attractions.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant recommendation-message";
+
+      const list = document.createElement("div");
+      list.className = "attraction-list";
+
+      recommendation.attractions.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "attraction-card clickable";
+        card.setAttribute("role", "button");
+        card.tabIndex = 0;
+        card.title = t("viewTickets");
+        const openProducts = () => loadProducts(item.name, recommendation.city);
+        card.addEventListener("click", openProducts);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openProducts();
+          }
+        });
+
+        card.appendChild(createPhoto(item));
+
+        const info = document.createElement("div");
+        info.className = "attraction-info";
+
+        const name = document.createElement("div");
+        name.className = "attraction-name";
+        name.textContent = item.name || "";
+        info.appendChild(name);
+
+        const meta = document.createElement("div");
+        meta.className = "attraction-meta";
+        meta.textContent = [
+          item.rating ? t("rating", item.rating) : t("noRating"),
+          item.category,
+          item.address,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        info.appendChild(meta);
+
+        const hint = document.createElement("div");
+        hint.className = "attraction-hint";
+        hint.textContent = t("viewTickets");
+        info.appendChild(hint);
+
+        card.appendChild(info);
+        list.appendChild(card);
+      });
+
+      wrap.appendChild(list);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addProductCards(products) {
+      if (!products || !Array.isArray(products.items)) return;
+      if (!products.items.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant recommendation-message";
+
+      const list = document.createElement("div");
+      list.className = "attraction-list";
+
+      products.items.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "attraction-card";
+
+        card.appendChild(createPhoto(item));
+
+        const info = document.createElement("div");
+        info.className = "attraction-info";
+
+        const title = document.createElement("div");
+        title.className = "stay-title";
+
+        const name = document.createElement("div");
+        name.className = "attraction-name";
+        name.textContent = item.name || "";
+        title.appendChild(name);
+
+        const price = document.createElement("span");
+        price.className = "product-price";
+        price.textContent = item.price_text || t("priceNote");
+        title.appendChild(price);
+        info.appendChild(title);
+
+        if (Array.isArray(item.tags) && item.tags.length) {
+          const tags = document.createElement("div");
+          tags.className = "product-tags";
+          tags.textContent = item.tags.join(" · ");
+          info.appendChild(tags);
+        }
+
+        if (item.url && /^https?:\/\//.test(item.url)) {
+          const link = document.createElement("a");
+          link.className = "product-link";
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = t("viewDetail");
+          info.appendChild(link);
+        }
+
+        card.appendChild(info);
+        list.appendChild(card);
+      });
+
+      wrap.appendChild(list);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function loadProducts(poi, city) {
+      if (!poi || loadingCards.has(poi)) return;
+      loadingCards.add(poi);
+
+      const userText = t("viewTicketsQuery", poi);
+      addMessage(userText, "user");
+      conversation.push({ role: "user", content: userText });
+
+      beginPending();
+
+      try {
+        const params = new URLSearchParams({ poi, limit: "6" });
+        if (city) params.set("city", city);
+        const res = await fetch(`${PRODUCT_API}?${params.toString()}`, {
+          headers: {
+            "X-Client-Id": CLIENT_ID,
+            "X-Language": currentLang,
+          },
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(apiErrorMessage(data, t("productsError")));
+        if (!Array.isArray(data.items) || !data.items.length) {
+          addMessage(t("noProducts", poi), "assistant");
+          return;
+        }
+
+        const reply = t("productsFound", poi, data.items.length);
+        addMessage(reply, "assistant", "recommend_products");
+        addProductCards(data);
+        conversation.push({ role: "assistant", content: reply });
+        if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+      } catch (err) {
+        const message =
+          err && err.message && err.message !== "Failed to fetch"
+            ? err.message
+            : t("productsError");
+        addMessage(`⚠️ ${message}`, "assistant");
+      } finally {
+        loadingCards.delete(poi);
+        endPending();
+      }
+    }
+
+    function rememberStayDates(deals) {
+      if (!deals || !deals.check_in || !deals.check_out) return;
+      currentStayDates = { check_in: deals.check_in, check_out: deals.check_out };
+    }
+
+    async function loadHotelDeals(hotel, city) {
+      if (!hotel || loadingCards.has(hotel)) return;
+      loadingCards.add(hotel);
+
+      const userText = t("viewRoomQuery", hotel);
+      addMessage(userText, "user");
+      conversation.push({ role: "user", content: userText });
+
+      beginPending();
+
+      try {
+        const params = new URLSearchParams({ hotel, limit: "6" });
+        if (city) params.set("city", city);
+        if (currentStayDates) {
+          params.set("check_in", currentStayDates.check_in);
+          params.set("check_out", currentStayDates.check_out);
+        }
+        const res = await fetch(`${HOTEL_API}?${params.toString()}`, {
+          headers: {
+            "X-Client-Id": CLIENT_ID,
+            "X-Language": currentLang,
+          },
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(apiErrorMessage(data, t("hotelsError")));
+        if (!Array.isArray(data.items) || !data.items.length) {
+          addMessage(t("noHotelDeals", hotel), "assistant");
+          return;
+        }
+
+        const reply = data.fallback
+          ? t("hotelFallback", hotel, data.items.length)
+          : t("hotelFound", hotel, data.items.length);
+        addMessage(reply, "assistant", "recommend_hotel_deals");
+        addHotelDealCards(data);
+        rememberStayDates(data);
+        conversation.push({ role: "assistant", content: reply });
+        if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+      } catch (err) {
+        const message =
+          err && err.message && err.message !== "Failed to fetch"
+            ? err.message
+            : t("hotelsError");
+        addMessage(`⚠️ ${message}`, "assistant");
+      } finally {
+        loadingCards.delete(hotel);
+        endPending();
+      }
+    }
+
+    function addFoodCards(food) {
+      if (!food || !Array.isArray(food.restaurants)) return;
+      if (!food.restaurants.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant recommendation-message";
+
+      const list = document.createElement("div");
+      list.className = "attraction-list";
+
+      food.restaurants.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "attraction-card";
+
+        card.appendChild(createPhoto(item));
+
+        const info = document.createElement("div");
+        info.className = "attraction-info";
+
+        const title = document.createElement("div");
+        title.className = "food-title";
+
+        const name = document.createElement("div");
+        name.className = "attraction-name";
+        name.textContent = item.name || "";
+        title.appendChild(name);
+
+        if (item.suitable_for) {
+          const badge = document.createElement("span");
+          badge.className = "food-suitable";
+          badge.textContent = item.suitable_for;
+          title.appendChild(badge);
+        }
+        info.appendChild(title);
+
+        const meta = document.createElement("div");
+        meta.className = "attraction-meta";
+        meta.textContent = [
+          item.rating ? t("rating", item.rating) : t("noRating"),
+          item.category,
+          item.distance_text,
+          item.address,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        info.appendChild(meta);
+
+        card.appendChild(info);
+        list.appendChild(card);
+      });
+
+      wrap.appendChild(list);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addStayCards(stay) {
+      if (!stay || !Array.isArray(stay.stays)) return;
+      if (!stay.stays.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant recommendation-message";
+
+      const list = document.createElement("div");
+      list.className = "attraction-list";
+
+      stay.stays.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "attraction-card clickable";
+        card.setAttribute("role", "button");
+        card.tabIndex = 0;
+        card.title = t("stayViewPrice");
+        const openDeals = () => loadHotelDeals(item.name, stay.city);
+        card.addEventListener("click", (event) => {
+          if (event.target.closest("a")) return;
+          openDeals();
+        });
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openDeals();
+          }
+        });
+
+        card.appendChild(createPhoto(item));
+
+        const info = document.createElement("div");
+        info.className = "attraction-info";
+
+        const title = document.createElement("div");
+        title.className = "stay-title";
+
+        const name = document.createElement("div");
+        name.className = "attraction-name";
+        name.textContent = item.name || "";
+        title.appendChild(name);
+
+        if (item.category) {
+          const tag = document.createElement("span");
+          tag.className = "stay-tag";
+          tag.textContent = item.category;
+          title.appendChild(tag);
+        }
+
+        if (item.price_text) {
+          const price = document.createElement("span");
+          price.className = "stay-price";
+          price.textContent = item.price_text;
+          title.appendChild(price);
+        }
+        info.appendChild(title);
+
+        const meta = document.createElement("div");
+        meta.className = "attraction-meta";
+        meta.textContent = [
+          item.rating ? t("rating", item.rating) : "",
+          item.star_text,
+          item.distance_text,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        info.appendChild(meta);
+
+        const room = document.createElement("div");
+        room.className = "stay-room";
+        room.textContent = t("room", item.room_types, item.room_status);
+        info.appendChild(room);
+
+        if (item.tel) {
+          const phone = document.createElement("a");
+          phone.className = "stay-phone";
+          phone.href = `tel:${item.tel}`;
+          phone.textContent = t("phone", item.tel);
+          info.appendChild(phone);
+        } else {
+          const phone = document.createElement("div");
+          phone.className = "stay-phone";
+          phone.textContent = t("phoneConsult");
+          info.appendChild(phone);
+        }
+
+        if (item.address) {
+          const address = document.createElement("div");
+          address.className = "stay-address";
+          address.textContent = item.address;
+          info.appendChild(address);
+        }
+
+        const hint = document.createElement("div");
+        hint.className = "attraction-hint";
+        hint.textContent = t("stayHint");
+        info.appendChild(hint);
+
+        card.appendChild(info);
+        list.appendChild(card);
+      });
+
+      wrap.appendChild(list);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addHotelDealCards(hotelDeals) {
+      if (!hotelDeals || !Array.isArray(hotelDeals.items)) return;
+      if (!hotelDeals.items.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant recommendation-message";
+
+      const dateRange =
+        hotelDeals.check_in && hotelDeals.check_out
+          ? t("stayDates", hotelDeals.check_in, hotelDeals.check_out)
+          : "";
+
+      if (dateRange) {
+        const dates = document.createElement("div");
+        dates.className = "product-tags";
+        dates.textContent = dateRange;
+        wrap.appendChild(dates);
+      }
+
+      const list = document.createElement("div");
+      list.className = "attraction-list";
+
+      hotelDeals.items.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "attraction-card";
+
+        card.appendChild(createPhoto(item));
+
+        const info = document.createElement("div");
+        info.className = "attraction-info";
+
+        const title = document.createElement("div");
+        title.className = "stay-title";
+
+        const name = document.createElement("div");
+        name.className = "attraction-name";
+        name.textContent = item.name || "";
+        title.appendChild(name);
+
+        const price = document.createElement("span");
+        price.className = "product-price";
+        price.textContent = item.price_text || t("priceNote");
+        title.appendChild(price);
+        info.appendChild(title);
+
+        const meta = document.createElement("div");
+        meta.className = "attraction-meta";
+        meta.textContent = [
+          item.star,
+          item.score ? t("rating", item.score) : "",
+          item.score_desc,
+          item.address,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        if (meta.textContent) info.appendChild(meta);
+
+        if (item.review) {
+          const review = document.createElement("div");
+          review.className = "product-tags";
+          review.textContent = item.review;
+          info.appendChild(review);
+        }
+
+        if (item.url && /^https?:\/\//.test(item.url)) {
+          const link = document.createElement("a");
+          link.className = "product-link";
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          // 飞猪详情链接按查询日期生成，文案里带上日期便于用户核对
+          link.textContent = dateRange ? t("viewRoomDates", dateRange) : t("viewRoom");
+          if (dateRange) link.title = dateRange;
+          info.appendChild(link);
+        }
+
+        card.appendChild(info);
+        list.appendChild(card);
+      });
+
+      wrap.appendChild(list);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function createTransportIcon(mode) {
+      const icons = { train: "🚄", flight: "✈️", driving: "🚗", bus: "🚌" };
+      const box = document.createElement("div");
+      box.className = "attraction-photo attraction-photo-empty";
+      box.textContent = icons[mode] || "🧭";
+      return box;
+    }
+
+    function addTransportCards(transport) {
+      if (!transport || !Array.isArray(transport.modes)) return;
+      if (!transport.modes.length) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "message assistant recommendation-message";
+
+      const head = document.createElement("div");
+      head.className = "transport-summary";
+      head.textContent = [
+        t("fromTo", transport.origin, transport.destination_label || transport.destination),
+        transport.people ? t("people", transport.people) : "",
+        transport.date ? t("depart", transport.date) : "",
+        transport.distance_km ? t("distanceKm", transport.distance_km) : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      wrap.appendChild(head);
+
+      const list = document.createElement("div");
+      list.className = "attraction-list";
+
+      transport.modes.forEach((mode) => {
+        const card = document.createElement("div");
+        card.className = "attraction-card";
+
+        card.appendChild(createTransportIcon(mode.mode));
+
+        const info = document.createElement("div");
+        info.className = "attraction-info";
+
+        const title = document.createElement("div");
+        title.className = "stay-title";
+
+        const label = document.createElement("span");
+        label.className = "transport-mode";
+        label.textContent = mode.label || mode.mode;
+        title.appendChild(label);
+
+        const price = document.createElement("span");
+        price.className = "transport-price";
+        price.textContent = mode.price_text || "";
+        title.appendChild(price);
+
+        if (mode.is_cheapest) {
+          const badge = document.createElement("span");
+          badge.className = "transport-badge";
+          badge.textContent = t("cheapest");
+          title.appendChild(badge);
+        }
+        if (mode.is_fastest) {
+          const badge = document.createElement("span");
+          badge.className = "transport-badge";
+          badge.textContent = t("fastest");
+          title.appendChild(badge);
+        }
+        info.appendChild(title);
+
+        const meta = document.createElement("div");
+        meta.className = "attraction-meta";
+        meta.textContent = [
+          mode.total_price_text ? t("totalCost", mode.total_price_text) : "",
+          mode.duration_text ? t("durationApprox", mode.duration_text) : "",
+          mode.detail || "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        info.appendChild(meta);
+
+        if (mode.note) {
+          const note = document.createElement("div");
+          note.className = "product-tags";
+          note.textContent = mode.note;
+          info.appendChild(note);
+        }
+
+        if (mode.url && /^https?:\/\//.test(mode.url)) {
+          const link = document.createElement("a");
+          link.className = "product-link";
+          link.href = mode.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = t("viewTicket");
+          info.appendChild(link);
+        }
+
+        card.appendChild(info);
+        list.appendChild(card);
+      });
+
+      wrap.appendChild(list);
+
+      if (Array.isArray(transport.notes) && transport.notes.length) {
+        const notes = document.createElement("div");
+        notes.className = "product-tags";
+        notes.textContent = transport.notes.join(t("notesJoin"));
+        wrap.appendChild(notes);
+      }
+
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      addMessage(text, "user");
+      const history = conversation.slice(-6).map((item) => ({
+        role: item.role,
+        content: String(item.content || "").slice(0, 1000),
+      }));
+      conversation.push({ role: "user", content: text });
+      inputEl.value = "";
+      beginPending();
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 25000);
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Client-Id": CLIENT_ID,
+            "X-Language": currentLang,
+          },
+          body: JSON.stringify({
+            message: text,
+            history,
+            seen_stays: seenStays.slice(-50),
+            language: currentLang,
+          }),
+          signal: controller.signal,
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(apiErrorMessage(data, t("assistantUnavailable")));
+        }
+        addMessage(data.reply, "assistant", data.tool_used);
+        addRouteCard(data.route);
+        addRecommendationCards(data.recommendation);
+        addFoodCards(data.food);
+        addStayCards(data.stay);
+        addHotelDealCards(data.hotel_deals);
+        rememberStayDates(data.hotel_deals);
+        addProductCards(data.products);
+        addTransportCards(data.transport);
+        if (data.stay && Array.isArray(data.stay.stays)) {
+          data.stay.stays.forEach((item) => {
+            if (item.name && !seenStays.includes(item.name)) {
+              seenStays.push(item.name);
+              if (seenStays.length > 50) {
+                seenStays.splice(0, seenStays.length - 50);
+              }
+            }
+          });
+        }
+        conversation.push({ role: "assistant", content: data.reply });
+        if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+      } catch (err) {
+        const message =
+          err && err.name === "AbortError"
+            ? t("timeout")
+            : err && err.message && err.message !== "Failed to fetch"
+              ? err.message
+              : t("backendDown");
+        addMessage(`⚠️ ${message}`, "assistant");
+      } finally {
+        clearTimeout(timer);
+        endPending();
+      }
+    }
+  </script>
+</body>
+</html>
