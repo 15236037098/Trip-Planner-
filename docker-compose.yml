@@ -2,22 +2,66 @@ services:
   api:
     build:
       context: ./backend
+    init: true
     environment:
       PORT: "8000"
       TZ: Asia/Shanghai
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       URL: ${URL}
-      MODEL: ${MODEL:-gpt-4o-mini}
+      MODEL: ${MODEL:-deepseek-flash}
       GAODE_API_KEY: ${GAODE_API_KEY}
+      GAODE_QPS: ${GAODE_QPS:-3}
+      GAODE_MAX_INFLIGHT: ${GAODE_MAX_INFLIGHT:-3}
+      AMAP_POOL_SIZE: ${AMAP_POOL_SIZE:-8}
+      # 会话与 LLM 预算
+      CHAT_BUDGET_SECONDS: ${CHAT_BUDGET_SECONDS:-18}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-8}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-0}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-800}
+      MAX_CONCURRENT_LLM: ${MAX_CONCURRENT_LLM:-200}
+      MAX_CONCURRENT_TOOLS: ${MAX_CONCURRENT_TOOLS:-40}
+      MAX_TOOL_ROUNDS: ${MAX_TOOL_ROUNDS:-3}
+      RESPONSE_CACHE_TTL: ${RESPONSE_CACHE_TTL:-120}
+      RESPONSE_CACHE_SIZE: ${RESPONSE_CACHE_SIZE:-512}
+      IP_RATE_LIMIT: ${IP_RATE_LIMIT:-300}
       # Python 调用同一网络内的 Node 服务获取飞猪数据
       SKILL_SERVICE_URL: http://web:3000
     expose:
       - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
+    stop_grace_period: 20s
+    security_opt:
+      - no-new-privileges:true
 
   web:
     build:
       context: ./frontend
+    init: true
     environment:
       PORT: "3000"
       HOST: 0.0.0.0
@@ -25,10 +69,52 @@ services:
       NODE_ENV: production
       BACKEND_URL: http://api:8000
       FLYAI_API_KEY: ${FLYAI_API_KEY}
-      # 直连对外暴露端口，不信任 X-Forwarded-For，避免伪造 IP 绕过限流
-      TRUST_PROXY: "0"
+      # ECS 前置 Nginx 时信任一层代理；若还有 SLB/CDN，需要调大
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      CHAT_TIMEOUT_MS: ${CHAT_TIMEOUT_MS:-20000}
+      MAX_INFLIGHT_CHAT: ${MAX_INFLIGHT_CHAT:-250}
+      MAX_QUEUE_CHAT: ${MAX_QUEUE_CHAT:-250}
+      MAX_INFLIGHT_PER_CLIENT: ${MAX_INFLIGHT_PER_CLIENT:-4}
+      CHAT_RATE_LIMIT_PER_MIN: ${CHAT_RATE_LIMIT_PER_MIN:-30}
+      FLYAI_PRODUCT_CONCURRENCY: ${FLYAI_PRODUCT_CONCURRENCY:-2}
+      FLYAI_HOTEL_CONCURRENCY: ${FLYAI_HOTEL_CONCURRENCY:-2}
+      FLYAI_TRANSPORT_CONCURRENCY: ${FLYAI_TRANSPORT_CONCURRENCY:-1}
+      FLYAI_QUEUE_SIZE: ${FLYAI_QUEUE_SIZE:-100}
+      FLYAI_QUEUE_TIMEOUT_MS: ${FLYAI_QUEUE_TIMEOUT_MS:-3000}
+      FLYAI_JSON_TIMEOUT_MS: ${FLYAI_JSON_TIMEOUT_MS:-9000}
+      NODE_OPTIONS: "--max-old-space-size=384"
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      # 只绑定本机，公网由 Nginx 80/443 承接，安全组不要开放 3000
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
+    stop_grace_period: 20s
+    security_opt:
+      - no-new-privileges:true

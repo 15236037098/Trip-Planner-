@@ -10,7 +10,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Trip Planner - 智能助手</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -520,6 +520,130 @@
       }
     }
 
+    @media (max-width: 699px) {
+      body { align-items: stretch; }
+
+      .chat-container { max-width: 100%; }
+
+      .chat-header {
+        padding: 12px 14px;
+        padding-top: calc(12px + env(safe-area-inset-top));
+        padding-left: calc(14px + env(safe-area-inset-left));
+        padding-right: calc(14px + env(safe-area-inset-right));
+        font-size: 16px;
+      }
+
+      .chat-header .app-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: left;
+      }
+
+      .chat-header select {
+        flex: 0 0 auto;
+        max-width: 112px;
+        min-height: 44px;
+        padding: 6px 8px;
+        font-size: 16px;
+      }
+
+      .chat-messages {
+        padding: 12px;
+        padding-left: calc(12px + env(safe-area-inset-left));
+        padding-right: calc(12px + env(safe-area-inset-right));
+        overflow-x: hidden;
+      }
+
+      .message { max-width: 88%; }
+
+      /* 路线/推荐卡片占满可用宽度，不被气泡宽度限制 */
+      .message.route-message,
+      .message.recommendation-message {
+        max-width: 100%;
+      }
+
+      .chat-input-area {
+        padding: 8px 12px;
+        padding-left: calc(12px + env(safe-area-inset-left));
+        padding-right: calc(12px + env(safe-area-inset-right));
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        gap: 8px;
+      }
+
+      .chat-input-area input {
+        min-width: 0;
+        padding: 10px 14px;
+        font-size: 16px;
+      }
+
+      .chat-input-area button {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 10px 18px;
+        font-size: 15px;
+      }
+
+      .chat-messages img { max-width: 100%; }
+
+      .attraction-card { align-items: flex-start; }
+
+      .attraction-photo {
+        flex: 0 0 76px;
+        width: 76px;
+        height: 76px;
+      }
+
+      .attraction-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .attraction-meta,
+      .stay-address,
+      .stay-title,
+      .product-tags {
+        overflow-wrap: anywhere;
+      }
+
+      .product-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 2px 0;
+      }
+
+      /* 11px 在手机上过小，统一提到 12px 保证可读性 */
+      .route-leg,
+      .attraction-hint,
+      .food-suitable,
+      .stay-tag,
+      .stay-room,
+      .product-tags,
+      .transport-mode,
+      .transport-badge {
+        font-size: 12px;
+      }
+
+      .route-stat {
+        max-width: 100%;
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 699px) and (max-height: 500px) {
+      .chat-header {
+        padding-top: calc(6px + env(safe-area-inset-top));
+        padding-bottom: 6px;
+      }
+
+      .chat-messages {
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+    }
+
     @media (max-width: 520px) {
       .chat-header {
         padding-top: calc(16px + env(safe-area-inset-top));
@@ -531,12 +655,28 @@
 
       .chat-input-area {
         padding: 10px 12px;
+        padding-left: calc(12px + env(safe-area-inset-left));
+        padding-right: calc(12px + env(safe-area-inset-right));
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
       }
 
       /* 16px 可避免 iOS Safari 聚焦输入框时自动放大页面 */
       .chat-input-area input {
         font-size: 16px;
+      }
+    }
+
+    /* 横屏手机宽度常大于 699px，会走桌面布局，这里补齐刘海屏左右安全区 */
+    @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+      .chat-header {
+        padding-left: calc(20px + env(safe-area-inset-left));
+        padding-right: calc(20px + env(safe-area-inset-right));
+      }
+
+      .chat-input-area {
+        padding-left: calc(16px + env(safe-area-inset-left));
+        padding-right: calc(16px + env(safe-area-inset-right));
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
       }
     }
   </style>
@@ -1171,9 +1311,18 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
+    function safeHttpUrl(value) {
+      try {
+        const url = new URL(String(value || ""), window.location.origin);
+        return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+      } catch {
+        return "";
+      }
+    }
+
     function createPhoto(item) {
-      const src = item.photo || item.image;
-      if (src && /^https?:\/\//.test(src)) {
+      const src = safeHttpUrl(item.photo || item.image);
+      if (src) {
         const img = document.createElement("img");
         img.className = "attraction-photo";
         img.src = src;
@@ -1293,10 +1442,11 @@
           info.appendChild(tags);
         }
 
-        if (item.url && /^https?:\/\//.test(item.url)) {
+        const detailUrl = safeHttpUrl(item.url);
+        if (detailUrl) {
           const link = document.createElement("a");
           link.className = "product-link";
-          link.href = item.url;
+          link.href = detailUrl;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           link.textContent = t("viewDetail");
@@ -1638,10 +1788,11 @@
           info.appendChild(review);
         }
 
-        if (item.url && /^https?:\/\//.test(item.url)) {
+        const detailUrl = safeHttpUrl(item.url);
+        if (detailUrl) {
           const link = document.createElement("a");
           link.className = "product-link";
-          link.href = item.url;
+          link.href = detailUrl;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           // 飞猪详情链接按查询日期生成，文案里带上日期便于用户核对
@@ -1743,10 +1894,11 @@
           info.appendChild(note);
         }
 
-        if (mode.url && /^https?:\/\//.test(mode.url)) {
+        const detailUrl = safeHttpUrl(mode.url);
+        if (detailUrl) {
           const link = document.createElement("a");
           link.className = "product-link";
-          link.href = mode.url;
+          link.href = detailUrl;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           link.textContent = t("viewTicket");

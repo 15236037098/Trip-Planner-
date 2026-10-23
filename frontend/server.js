@@ -1,5 +1,6 @@
 const express = require("express");
 const fs = require("node:fs");
+const http = require("node:http");
 const path = require("path");
 const zlib = require("node:zlib");
 const products = require("./products");
@@ -429,7 +430,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "服务内部错误" });
 });
 
-app.listen(PORT, HOST, () => {
+const server = http.createServer(app);
+// 代理（cloudflared/Nginx）会复用连接；必须让 Keep-Alive 长于代理的空闲回收时间，
+// 否则 POST /chat 可能复用已关闭的连接而直接超时。
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+server.requestTimeout = 75000;
+
+server.listen(PORT, HOST, () => {
   console.log(`前端服务已启动: http://${HOST}:${PORT}`);
   console.log(`后端地址: ${BACKEND_URL}`);
 });

@@ -642,7 +642,17 @@ SYSTEM_PROMPT = """你是一个旅行助手。规则如下：
    项目卡片已在页面展示，回答控制在100字以内，并提示点击卡片可查看详情与预订。
    如果用户只说了城市、还没说具体景点，先调用 recommend_attractions 推荐景点，
    并提示"点击景点卡片可查看门票和项目"，此时不要调用 recommend_products。
-8. 如果用户问其他问题，直接回答，不要调用工具。
+8. 【服务范围】你只提供五类服务：查城市天气、推荐景点与规划游玩路线（含门票与游玩项目）、
+   推荐餐馆与特色小吃、推荐住宿与查询酒店实时房价、比较交通方式。
+   8.1 用户问题只要是在问这五类的主题（天气、景点、路线、美食、住宿房价、交通比价，
+       即使只提到一个城市或地名），必须按规则 1-7 正常调用工具并回答，禁止输出固定话术。
+       例如“上海天气怎么样”“推荐上海的热门景点”都要正常调用工具并回答。
+   8.2 只有主题与旅行无关时才拒答（算术、新闻时事、学术知识、编程、翻译、写作、写诗、
+       医疗、法律、娱乐八卦、其他商品推荐等），即使句中出现城市名也一样：
+       不回答、不解释、不调用工具，只逐字输出下面这段固定话术。例如“1+1等于几”
+       “今天有什么新闻”“写一首关于北京的诗”都必须输出固定话术。
+__OFF_TOPIC__
+   8.3 打招呼、问“你能做什么”、内容无法识别时，同样只输出上面这段固定话术。
 9. 回答简洁友好，控制在200字以内；路线已在地图中展示，不必重复罗列细节。"""
 
 # 支持的回答语言，键为前端传入的语言代码
@@ -653,6 +663,65 @@ SUPPORTED_LANGUAGES = {
     "ko": "한국어",
     "es": "Español",
     "fr": "Français",
+}
+
+
+# 超出服务范围时的固定回复，与首页提示保持一致，按界面语言返回
+OFF_TOPIC_REPLIES = {
+    "zh-CN": (
+        "好呀，想试试哪项功能？我可以帮你：\n\n"
+        "- 查城市天气 🌤️\n"
+        "- 推荐热门景点、规划游玩路线 🗺️\n"
+        "- 找附近餐馆或特色小吃 🍜\n"
+        "- 推荐住宿、查酒店实时房价 🏨\n"
+        "- 比较交通方式（飞机/高铁/自驾/大巴）✈️🚌\n\n"
+        "告诉我目的地或需求就行～"
+    ),
+    "en": (
+        "Sure! Which of these can I help you with:\n\n"
+        "- City weather 🌤️\n"
+        "- Popular attractions and route planning 🗺️\n"
+        "- Nearby restaurants and local snacks 🍜\n"
+        "- Accommodation and live hotel rates 🏨\n"
+        "- Transport comparison (plane / high-speed rail / self-drive / coach) ✈️🚌\n\n"
+        "Just tell me your destination or what you need ~"
+    ),
+    "ja": (
+        "はい、どの機能をお試しになりますか？お手伝いできること：\n\n"
+        "- 都市の天気 🌤️\n"
+        "- 人気観光スポットの紹介・観光ルートの計画 🗺️\n"
+        "- 近くのレストランやご当地グルメ 🍜\n"
+        "- 宿泊先の紹介・ホテルのリアルタイム料金 🏨\n"
+        "- 交通手段の比較（飛行機／高速鉄道／レンタカー／長距離バス）✈️🚌\n\n"
+        "目的地やご要望を教えてください〜"
+    ),
+    "ko": (
+        "네, 어떤 기능을 도와드릴까요? 제가 할 수 있는 일:\n\n"
+        "- 도시 날씨 🌤️\n"
+        "- 인기 관광지 추천 및 여행 경로 계획 🗺️\n"
+        "- 근처 음식점 및 현지 간식 🍜\n"
+        "- 숙소 추천 및 호텔 실시간 요금 🏨\n"
+        "- 교통수단 비교(비행기/고속철도/자가운전/버스) ✈️🚌\n\n"
+        "목적지나 원하시는 것을 알려주세요~"
+    ),
+    "es": (
+        "¡Claro! ¿Con cuál de estas funciones te ayudo?\n\n"
+        "- El tiempo en una ciudad 🌤️\n"
+        "- Atracciones populares y planificación de rutas 🗺️\n"
+        "- Restaurantes cercanos y comida local 🍜\n"
+        "- Alojamiento y precios de hotel en tiempo real 🏨\n"
+        "- Comparación de transporte (avión / tren de alta velocidad / coche / autobús) ✈️🚌\n\n"
+        "Dime tu destino o lo que necesitas ~"
+    ),
+    "fr": (
+        "Bien sûr ! Quelle fonction souhaitez-vous essayer ?\n\n"
+        "- La météo d'une ville 🌤️\n"
+        "- Attractions populaires et planification d'itinéraire 🗺️\n"
+        "- Restaurants à proximité et spécialités locales 🍜\n"
+        "- Hébergement et tarifs d'hôtel en temps réel 🏨\n"
+        "- Comparaison des transports (avion / train à grande vitesse / voiture / bus) ✈️🚌\n\n"
+        "Indiquez-moi votre destination ou votre besoin ~"
+    ),
 }
 
 
@@ -668,9 +737,11 @@ def _normalize_language(value: Optional[str]) -> str:
 
 
 def _build_system_prompt(language: str) -> str:
-    """在基础提示词上追加日期与语言约束，保证回复语言与界面语言一致。"""
+    """在基础提示词上追加日期、范围外固定话术与语言约束，保证回复语言与界面语言一致。"""
     prompt = (
-        SYSTEM_PROMPT
+        SYSTEM_PROMPT.replace(
+            "__OFF_TOPIC__", OFF_TOPIC_REPLIES.get(language, OFF_TOPIC_REPLIES["zh-CN"])
+        )
         + f"\n\n当前日期：{date.today().isoformat()}。"
         "把用户说的“明天、后天、下周末、12月5日”等换算成日期时以此为准，"
         "日期一律写成 YYYY-MM-DD。"

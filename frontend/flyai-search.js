@@ -13,9 +13,9 @@ class FlyaiError extends Error {
 }
 
 // 单次飞猪查询：整体预算 + 至多重试一次，保证 Node 侧总耗时可控
-// 超时链路：Node CLI 总预算 6s + 排队 3s ≈ 9s < Python 工具超时 12s < 会话预算 18s
+// CLI 实测约 6-7 秒（Windows 上输出 JSON 后可能异常退出），预算过短会误杀有效结果
 const RETRY_DELAYS = [500];
-const DEFAULT_TIMEOUT_MS = 6000;
+const DEFAULT_TIMEOUT_MS = 9000;
 const DEFAULT_QUEUE_TIMEOUT_MS = 3000;
 
 function isRetryable(error) {

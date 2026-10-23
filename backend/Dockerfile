@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai
 
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt -i https://mirrors.cloud.tencent.com/pypi/simple
+RUN pip install -r /tmp/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 RUN useradd --create-home --uid 10001 appuser
 COPY --chown=appuser:appuser app/ /app/

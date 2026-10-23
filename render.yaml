@@ -50,7 +50,7 @@ services:
         value: "3000"
       # 单次飞猪 JSON 调用的总预算（含重试），与 Python 工具超时 12s 对齐
       - key: FLYAI_JSON_TIMEOUT_MS
-        value: "6000"
+        value: "9000"
       # 由 Render 注入 api 服务的内网 host:port
       - key: BACKEND_URL
         fromService:
